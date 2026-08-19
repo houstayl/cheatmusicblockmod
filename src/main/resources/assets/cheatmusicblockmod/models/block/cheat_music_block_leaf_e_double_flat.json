@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/leaves",
+  "textures": {
+    "all": "cheatmusicblockmod:block/cheat_music_block_leaf_e_double_flat"
+  }
+}

@@ -1,0 +1,7 @@
+
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "cheatmusicblockmod:block/cheat_music_block_oak_log_f_double_flat"
+  }
+}
