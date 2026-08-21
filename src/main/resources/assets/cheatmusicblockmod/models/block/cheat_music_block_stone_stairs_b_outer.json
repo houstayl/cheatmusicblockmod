@@ -1,0 +1,9 @@
+
+{
+  "parent": "minecraft:block/outer_stairs",
+  "textures": {
+    "bottom": "cheatmusicblockmod:block/cheat_music_block_stone_b",
+    "top": "cheatmusicblockmod:block/cheat_music_block_stone_b",
+    "side": "cheatmusicblockmod:block/cheat_music_block_stone_b"
+  }
+}

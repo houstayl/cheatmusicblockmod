@@ -8,9 +8,10 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
+import net.minecraft.block.*;
+import net.minecraft.block.enums.BlockHalf;
+import net.minecraft.block.enums.SlabType;
+import net.minecraft.block.enums.StairShape;
 import net.minecraft.command.argument.BlockStateArgument;
 import net.minecraft.command.argument.BlockStateArgumentType;
 import net.minecraft.item.BlockItem;
@@ -27,6 +28,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,9 +38,10 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 public class CheatMusicBlockMod implements ModInitializer {
-	//TODO add black block
+	//TODO add black texture and default block texture at b double sharp and e double sharp
 	//TODO add recursive getblocks
 	//todo handle pausing
+	//todo fill that replaces all blocks in area that have cheat music block versions oak plank -> cheat music oak plank
 	public static final String MOD_ID = "cheatmusicblockmod";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
@@ -51,6 +54,18 @@ public class CheatMusicBlockMod implements ModInitializer {
 	private static Block[] createTierArrayBlock(Supplier<FabricBlockSettings> settingsSupplier) {
 		return IntStream.range(0, 7)
 				.mapToObj(tier -> new CheatMusicBlock(settingsSupplier.get(), tier))
+				.toArray(Block[]::new);
+	}
+
+	private static Block[] createTierArrayStairsBlock(Supplier<FabricBlockSettings> settingsSupplier, Block[] cheatmusicblocks) {
+		return IntStream.range(0, 7)
+				.mapToObj(type -> new CheatMusicStairsBlock(cheatmusicblocks[type], settingsSupplier.get(), type))
+				.toArray(Block[]::new);
+	}
+
+	private static Block[] createTierArraySlabsBlock(Supplier<FabricBlockSettings> settingsSupplier) {
+		return IntStream.range(0, 7)
+				.mapToObj(type -> new CheatMusicSlabsBlock(settingsSupplier.get(), type))
 				.toArray(Block[]::new);
 	}
 
@@ -67,6 +82,26 @@ public class CheatMusicBlockMod implements ModInitializer {
 			"_dirt", createTierArrayBlock(() -> FabricBlockSettings.copyOf(Blocks.DIRT)),
 			"_oak_log", createTierArrayBlock(() -> FabricBlockSettings.copyOf(Blocks.OAK_PLANKS))
 	);
+
+	public static final Map<String, Block[]> CHEAT_MUSIC_STAIRS_BLOCKS = Map.of(
+			//"base_stairs",         createTierArrayStairsBlock(() -> FabricBlockSettings.copyOf(Blocks.STONE_STAIRS), CHEAT_MUSIC_BLOCKS.get("base")),
+			"_stone_stairs",        createTierArrayStairsBlock(() -> FabricBlockSettings.copyOf(Blocks.STONE_STAIRS), CHEAT_MUSIC_BLOCKS.get("_stone")),
+			"_oak_stairs",   createTierArrayStairsBlock(() -> FabricBlockSettings.copyOf(Blocks.OAK_STAIRS), CHEAT_MUSIC_BLOCKS.get("_oak_plank")),
+			"_stone_bricks_stairs", createTierArrayStairsBlock(() -> FabricBlockSettings.copyOf(Blocks.STONE_BRICK_STAIRS), CHEAT_MUSIC_BLOCKS.get("_stone_bricks")),
+			"_cobblestone_stairs", createTierArrayStairsBlock(() -> FabricBlockSettings.copyOf(Blocks.COBBLESTONE_STAIRS), CHEAT_MUSIC_BLOCKS.get("_cobblestone"))
+	);
+
+	public static final Map<String, Block[]> CHEAT_MUSIC_SLABS_BLOCKS = Map.of(
+			//"base_stairs",         createTierArraySlabsBlock(() -> FabricBlockSettings.copyOf(Blocks.STONE_STAIRS), CHEAT_MUSIC_BLOCKS.get("base")),
+			"_stone_slabs",        createTierArraySlabsBlock(() -> FabricBlockSettings.copyOf(Blocks.STONE_SLAB)),
+			"_oak_slabs",   createTierArraySlabsBlock(() -> FabricBlockSettings.copyOf(Blocks.OAK_SLAB)),
+			"_stone_bricks_slabs", createTierArraySlabsBlock(() -> FabricBlockSettings.copyOf(Blocks.STONE_BRICK_SLAB)),
+			"_cobblestone_slabs", createTierArraySlabsBlock(() -> FabricBlockSettings.copyOf(Blocks.COBBLESTONE_SLAB))
+	);
+
+	// Used for getBlocks
+	Map<Block, Integer> BLOCK_TO_INDEX = new HashMap<>();
+
 
 
 
@@ -121,6 +156,11 @@ public class CheatMusicBlockMod implements ModInitializer {
 			cheatMusicBlockCoordinates[i] = new HashSet<>();
 		}
 
+
+		registerBlocksInSet(CHEAT_MUSIC_BLOCKS);
+		registerBlocksInSet(CHEAT_MUSIC_STAIRS_BLOCKS);
+		registerBlocksInSet(CHEAT_MUSIC_SLABS_BLOCKS);
+		/*
 		//register blocks
 		for (Map.Entry<String, Block[]> entry : CHEAT_MUSIC_BLOCKS.entrySet()) {
 			String variant = entry.getKey();
@@ -140,10 +180,63 @@ public class CheatMusicBlockMod implements ModInitializer {
 
 			}
 		}
+		//register stairs
+		for (Map.Entry<String, Block[]> entry : CHEAT_MUSIC_STAIRS_BLOCKS.entrySet()) {
+			String variant = entry.getKey();
+			Block[] blocks = entry.getValue();
+			String path = "cheat_music_block";
+			if (!variant.equals("base")){//if it is the cheatmusic block and not a variant of an existing block
+				path += variant;
+			}
+			for (int i = 0; i < blocks.length; i++) {
+
+				//Identifier id = new Identifier(MOD_ID, path);
+
+				//register blocks
+				Registry.register(Registries.BLOCK, new Identifier(MOD_ID, path + i), blocks[i]);
+				Registry.register(Registries.ITEM, new Identifier(MOD_ID, path + i),
+						new BlockItem(blocks[i], new FabricItemSettings()));
+
+			}
+		}
+
+		//register slabs
+		for (Map.Entry<String, Block[]> entry : CHEAT_MUSIC_SLABS_BLOCKS.entrySet()) {
+			String variant = entry.getKey();
+			Block[] blocks = entry.getValue();
+			String path = "cheat_music_block";
+			if (!variant.equals("base")){//if it is the cheatmusic block and not a variant of an existing block
+				path += variant;
+			}
+			for (int i = 0; i < blocks.length; i++) {
+
+				//Identifier id = new Identifier(MOD_ID, path);
+
+				//register blocks
+				Registry.register(Registries.BLOCK, new Identifier(MOD_ID, path + i), blocks[i]);
+				Registry.register(Registries.ITEM, new Identifier(MOD_ID, path + i),
+						new BlockItem(blocks[i], new FabricItemSettings()));
+
+			}
+		}
+
+		 */
 
 
 
+		addBlocksToInventoryInSet(CHEAT_MUSIC_BLOCKS);
+		addBlocksToInventoryInSet(CHEAT_MUSIC_STAIRS_BLOCKS);
+		addBlocksToInventoryInSet(CHEAT_MUSIC_SLABS_BLOCKS);
 
+		// Populate from block maps
+		for (var map : List.of(CHEAT_MUSIC_BLOCKS, CHEAT_MUSIC_STAIRS_BLOCKS, CHEAT_MUSIC_SLABS_BLOCKS)) {
+			for (Block[] blocks : map.values()) {
+				for (int i = 0; i < blocks.length; i++) {
+					BLOCK_TO_INDEX.put(blocks[i], i);
+				}
+			}
+		}
+		/*
 		//Add blocks to inventory menu
 		ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS).register(content -> {
 			for (Map.Entry<String, Block[]> entry : CHEAT_MUSIC_BLOCKS.entrySet()) {
@@ -154,6 +247,28 @@ public class CheatMusicBlockMod implements ModInitializer {
 			}
 
 		});
+		//Add stairs to inventory
+		ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS).register(content -> {
+			for (Map.Entry<String, Block[]> entry : CHEAT_MUSIC_STAIRS_BLOCKS.entrySet()) {
+				Block[] blocks = entry.getValue();
+				for(int i = 0; i < blocks.length; i++){
+					content.add(blocks[i]);
+				}
+			}
+
+		});
+		//Add slabs to inventory
+		ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS).register(content -> {
+			for (Map.Entry<String, Block[]> entry : CHEAT_MUSIC_SLABS_BLOCKS.entrySet()) {
+				Block[] blocks = entry.getValue();
+				for(int i = 0; i < blocks.length; i++){
+					content.add(blocks[i]);
+				}
+			}
+
+		});
+
+		 */
 
 
 
@@ -173,7 +288,7 @@ public class CheatMusicBlockMod implements ModInitializer {
 		Registry.register(Registries.SOUND_EVENT, SATIE_GYMNOPEDIE_ID, SATIE_GYMNOPEDIE_EVENT);
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-			dispatcher.register(CommandManager.literal("getblocks")
+			dispatcher.register(CommandManager.literal("getcheatmusicblocks")
 							.then(CommandManager.argument("radius", IntegerArgumentType.integer(1, 100))
 									.executes(context -> {
 										ServerPlayerEntity player = context.getSource().getPlayer();
@@ -325,6 +440,73 @@ public class CheatMusicBlockMod implements ModInitializer {
 			);
 		});
 
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+			dispatcher.register(CommandManager.literal("layercheatmusicblocks")
+					.then(CommandManager.argument("layer_height", IntegerArgumentType.integer(1, 20))
+							.then(CommandManager.argument("num_voices", IntegerArgumentType.integer(1, 7))//todo passs in y value
+								.executes(context -> {
+									ServerPlayerEntity player = context.getSource().getPlayer();
+									ServerCommandSource source = context.getSource();
+									ServerWorld world = context.getSource().getWorld();
+									if (player == null) return 0; // Ensures command is run by a player
+									int layerHeight = IntegerArgumentType.getInteger(context, "layer_height");
+									int numVoices = IntegerArgumentType.getInteger(context, "num_voices");
+									Vec3d playerPos = source.getPosition();
+									BlockPos playerBlockPos = BlockPos.ofFloored(playerPos);
+
+									Set<BlockPos>[] addCoordinates = (Set<BlockPos>[])new HashSet[7];
+									Set<BlockPos>[] removeCoordinates = (Set<BlockPos>[])new HashSet[7];
+									for(int i = 0; i < addCoordinates.length; i++){
+										addCoordinates[i] = new HashSet<>();
+										removeCoordinates[i] = new HashSet<>();
+									}
+
+									for (int i = 0; i < cheatMusicBlockCoordinates.length; i++){
+										for (BlockPos pos : cheatMusicBlockCoordinates[i]) {
+											BlockState state = world.getBlockState(pos);
+											String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
+											int yDiff = pos.getY() - playerBlockPos.getY();//todo what about blocks below you, right now it is symettrical
+											int newBlockType = Math.abs(yDiff / layerHeight % numVoices);
+											if (i != newBlockType){//if block need to be changed
+												String newBlockId = blockId.substring(0, blockId.length() - 1) + newBlockType;//change last digit
+												if (state.getBlock() instanceof SlabBlock) {//copy over slab type to new slab
+													SlabType slabType = state.get(SlabBlock.TYPE);
+													boolean isWaterlogged = state.get(SlabBlock.WATERLOGGED);
+													newBlockId += String.format("[type=%s,waterlogged=%b]", slabType.asString(), isWaterlogged);
+												}
+												if (state.getBlock() instanceof StairsBlock) {//copy over stair attributs to new stair
+													Direction facing = state.get(StairsBlock.FACING);
+													BlockHalf half = state.get(StairsBlock.HALF);
+													StairShape shape = state.get(StairsBlock.SHAPE);
+													boolean isWaterlogged = state.get(StairsBlock.WATERLOGGED);
+													newBlockId += String.format("[facing=%s,half=%s,shape=%s,waterlogged=%b]", facing.asString(), half.asString(), shape.asString(), isWaterlogged);
+												}
+												String command = String.format("/setblock %d %d %d %s", pos.getX(), pos.getY(), pos.getZ(), newBlockId);
+												System.out.println(blockId + " " + command);
+												player.getServer().getCommandManager().executeWithPrefix(
+														player.getCommandSource(), command
+												);
+												removeCoordinates[i].add(pos);
+												addCoordinates[newBlockType].add(pos);
+											}
+
+										}
+									}
+									//updating the coordinates
+									for(int i = 0; i < cheatMusicBlockCoordinates.length; i++){
+										cheatMusicBlockCoordinates[i].removeAll(removeCoordinates[i]);
+										cheatMusicBlockCoordinates[i].addAll(addCoordinates[i]);
+									}
+
+
+
+									return 1;
+								})
+							)
+					)
+			);
+		});
+
 
 
 
@@ -363,11 +545,11 @@ public class CheatMusicBlockMod implements ModInitializer {
 
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-			dispatcher.register(CommandManager.literal("setdefaulttypes")
+			dispatcher.register(CommandManager.literal("setdefaulttypesofcheatmusicblocks")
 							.executes(context -> {
 								ServerPlayerEntity player = context.getSource().getPlayer();
 								if (player == null) return 0;
-								context.getSource().sendFeedback(() -> Text.literal("✦ Starting sequence..."), false);
+								context.getSource().sendFeedback(() -> Text.literal("Set default types"), false);
 								String command = "/setletters " + "a b c d e f g";
 								runSetLettersCommand(player, command);
 								return 1;
@@ -392,7 +574,7 @@ public class CheatMusicBlockMod implements ModInitializer {
 		});
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-			dispatcher.register(CommandManager.literal("clearblocks")
+			dispatcher.register(CommandManager.literal("clearcheatmusicblocks")
 					.executes(context -> {
 						for (int i = 0; i < cheatMusicBlockCoordinates.length; i++){
 							cheatMusicBlockCoordinates[i].clear();
@@ -589,13 +771,20 @@ public class CheatMusicBlockMod implements ModInitializer {
 				for (BlockPos pos : cheatMusicBlockCoordinates[i]) {
 					BlockState state = world.getBlockState(pos);
 					//iterate through all the block types
-					for (Map.Entry<String, Block[]> entry : CHEAT_MUSIC_BLOCKS.entrySet()) {
-						Block[] blocks = entry.getValue();
-						if (state.isOf(blocks[i])) {
-							((CheatMusicBlock) blocks[i]).setType(state, world, pos, type[i]);
-							changedCount++;
-						}
+					if (state.getBlock() instanceof CheatMusicBlock cheatBlock) {
+						cheatBlock.setType(state, world, pos, type[i]);
+						changedCount++;
 					}
+					else if (state.getBlock() instanceof CheatMusicStairsBlock cheatStairsBlock) {
+						cheatStairsBlock.setType(state, world, pos, type[i]);
+						changedCount++;
+					}
+					else if (state.getBlock() instanceof CheatMusicSlabsBlock cheatSlabsBlock) {
+						cheatSlabsBlock.setType(state, world, pos, type[i]);
+						changedCount++;
+					}
+
+
 
 				}
 
@@ -614,6 +803,13 @@ public class CheatMusicBlockMod implements ModInitializer {
 				center.add(radius, radius, radius))) {
 
 			BlockState state = world.getBlockState(pos);
+			Integer index = BLOCK_TO_INDEX.get(state.getBlock());
+			//if it is a cheatmusicblock
+			if (index != null) {
+				cheatMusicBlockCoordinates[index].add(pos.toImmutable());
+				changedCount++;
+			}
+			/*
 			//If it is a cheat music block
 			for (Map.Entry<String, Block[]> entry : CHEAT_MUSIC_BLOCKS.entrySet()) {
 				Block[] blocks = entry.getValue();
@@ -625,6 +821,28 @@ public class CheatMusicBlockMod implements ModInitializer {
 					}
 				}
 			}
+			for (Map.Entry<String, Block[]> entry : CHEAT_MUSIC_STAIRS_BLOCKS.entrySet()) {
+				Block[] blocks = entry.getValue();
+				for (int i = 0; i < blocks.length; i++) {
+					if (state.isOf(blocks[i])) {
+						cheatMusicBlockCoordinates[i].add(pos.toImmutable());
+						changedCount++;
+						break;
+					}
+				}
+			}
+			for (Map.Entry<String, Block[]> entry : CHEAT_MUSIC_SLABS_BLOCKS.entrySet()) {
+				Block[] blocks = entry.getValue();
+				for (int i = 0; i < blocks.length; i++) {
+					if (state.isOf(blocks[i])) {
+						cheatMusicBlockCoordinates[i].add(pos.toImmutable());
+						changedCount++;
+						break;
+					}
+				}
+			}
+
+			 */
 
 
 
@@ -680,6 +898,39 @@ public class CheatMusicBlockMod implements ModInitializer {
 						return 1; // Return 1 to indicate the command executed successfully
 					})
 			);
+		});
+	}
+
+	public void registerBlocksInSet(Map<String, Block[]> cheatMusicBlocks){
+		for (Map.Entry<String, Block[]> entry : cheatMusicBlocks.entrySet()) {
+			String variant = entry.getKey();
+			Block[] blocks = entry.getValue();
+			String path = "cheat_music_block";
+			if (!variant.equals("base")){//if it is the cheatmusic block and not a variant of an existing block
+				path += variant;
+			}
+			for (int i = 0; i < blocks.length; i++) {
+
+				//Identifier id = new Identifier(MOD_ID, path);
+
+				//register blocks
+				Registry.register(Registries.BLOCK, new Identifier(MOD_ID, path + i), blocks[i]);
+				Registry.register(Registries.ITEM, new Identifier(MOD_ID, path + i),
+						new BlockItem(blocks[i], new FabricItemSettings()));
+
+			}
+		}
+	}
+
+	public void addBlocksToInventoryInSet(Map<String, Block[]> cheatMusicBlocks){
+		ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS).register(content -> {
+			for (Map.Entry<String, Block[]> entry : cheatMusicBlocks.entrySet()) {
+				Block[] blocks = entry.getValue();
+				for(int i = 0; i < blocks.length; i++){
+					content.add(blocks[i]);
+				}
+			}
+
 		});
 	}
 

@@ -1,0 +1,9 @@
+
+{
+  "parent": "minecraft:block/stairs",
+  "textures": {
+    "bottom": "cheatmusicblockmod:block/cheat_music_block_stone_a_double_flat",
+    "top": "cheatmusicblockmod:block/cheat_music_block_stone_a_double_flat",
+    "side": "cheatmusicblockmod:block/cheat_music_block_stone_a_double_flat"
+  }
+}

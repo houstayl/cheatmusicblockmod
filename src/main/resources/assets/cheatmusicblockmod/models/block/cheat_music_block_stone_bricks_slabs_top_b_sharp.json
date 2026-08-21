@@ -1,0 +1,9 @@
+
+{
+  "parent": "minecraft:block/slab_top",
+  "textures": {
+    "bottom": "cheatmusicblockmod:block/cheat_music_block_stone_bricks_b_sharp",
+    "top": "cheatmusicblockmod:block/cheat_music_block_stone_bricks_b_sharp",
+    "side": "cheatmusicblockmod:block/cheat_music_block_stone_bricks_b_sharp"
+  }
+}

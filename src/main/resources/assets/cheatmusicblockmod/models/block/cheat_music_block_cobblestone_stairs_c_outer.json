@@ -1,0 +1,9 @@
+
+{
+  "parent": "minecraft:block/outer_stairs",
+  "textures": {
+    "bottom": "cheatmusicblockmod:block/cheat_music_block_cobblestone_c",
+    "top": "cheatmusicblockmod:block/cheat_music_block_cobblestone_c",
+    "side": "cheatmusicblockmod:block/cheat_music_block_cobblestone_c"
+  }
+}

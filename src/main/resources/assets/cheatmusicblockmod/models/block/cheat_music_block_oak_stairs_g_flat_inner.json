@@ -1,0 +1,9 @@
+
+{
+  "parent": "minecraft:block/inner_stairs",
+  "textures": {
+    "bottom": "cheatmusicblockmod:block/cheat_music_block_oak_plank_g_flat",
+    "top": "cheatmusicblockmod:block/cheat_music_block_oak_plank_g_flat",
+    "side": "cheatmusicblockmod:block/cheat_music_block_oak_plank_g_flat"
+  }
+}
